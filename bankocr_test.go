@@ -43,7 +43,7 @@ func ExampleStringReplace() {
 func ExampleGetAlternatives() {
   accountNumber := "888888888"
   //alternatives := []string{}
-  alternatives, _ := getAlternativeAccountNumbers(accountNumber)
+  alternatives := getAlternativeAccountNumbers(accountNumber)
 
   //fmt.Println(status)
   for _, alter := range alternatives {

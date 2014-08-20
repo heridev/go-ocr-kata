@@ -14,11 +14,11 @@ func GetAccountNumber(ocr string) string {
   accountNumber := ""
   for i:=0; i<9 ; i++{
     for _, val := range lines{
-      key = key+val[charNum : charNum+3]
+      key = key + val[charNum : charNum+3]
     }
     accountNumber += getMapValue(key)
     key = ""
-    charNum = charNum+3
+    charNum = charNum + 3
   }
 
   return accountNumber
@@ -72,31 +72,37 @@ func getAccountsFromFile(fromFile string, toFile string) {
 }
 
 func getState(accountNumber string) string {
+  result := accountNumber
   if (strings.Index(accountNumber, "?") != -1){
     return accountNumber + " ILL"
   }
   if !(validateChecksum(accountNumber)){
-    alternatives, length := getAlternativeAccountNumbers(accountNumber)
-    if length > 0 {
-      if length == 1 {
-        return alternatives[0]
-      }
-      if length > 1{
-        alts := accountNumber + " AMB ["
-        for _, val := range alternatives{
-          if val != "" {
-            alts += " " 
-            alts += val
-          }
-        }
-        alts +=" ]"
-        return alts
-      }
-    }else{
-      return accountNumber + " ERR"
-    }
+    result = getAlternatives(accountNumber)
   }
-  return accountNumber
+  return result 
+}
+
+func getAlternatives(accountNumber string) string{
+  alternatives := getAlternativeAccountNumbers(accountNumber)
+  length := len(alternatives)
+  result := ""
+
+  if length > 0 {
+    result = formatAlternatives(length, accountNumber, alternatives)
+  }else{
+    result = accountNumber + " ERR"
+  }
+  return result
+}
+
+func formatAlternatives(length int, accountNumber string, alternatives []string) string{
+  if length == 1 {
+    return alternatives[0]
+  }
+  alts := accountNumber + " AMB [ "
+  alts += strings.Join(alternatives, " ")
+  alts +=" ]"
+  return alts
 }
 
 func WriteOnFile(input string, path string){
@@ -112,24 +118,26 @@ func getLinesFromFile() []string{
   return lines[0: totLines]
 }
 
-func getAlternativeAccountNumbers(accountNumber string) ([]string, int){
-  altArray := make([]string, 100)
+func getAlternativeAccountNumbers(accountNumber string) []string{
+  altArray := []string{}
   key := ""
   alternatives := []byte{}
-  j := 0
   for i:= 0; i<len(accountNumber); i++{
     key = string(accountNumber[i])
     alternatives = altMap[key]
-    tmpAccountNumber := []byte(accountNumber)
-    for _, alternative := range alternatives {
-      tmpAccountNumber[i] = alternative
-      if validateChecksum(string(tmpAccountNumber)) {
-        altArray[j] = string(tmpAccountNumber)
-        j++
-      }
-      tmpAccountNumber = []byte(accountNumber)
-    }
+    getAlternativeDigits(&altArray, i, accountNumber, alternatives)
   }
-  return altArray, j
+  return altArray
+}
+
+func getAlternativeDigits(altArray *[]string, position int, accountNumber string, alternatives []byte) {
+  tmpAccountNumber := []byte(accountNumber)
+  for _, alternative := range alternatives {
+    tmpAccountNumber[position] = alternative
+    if validateChecksum(string(tmpAccountNumber)) {
+      *altArray = append(*altArray, string(tmpAccountNumber))
+    }
+    tmpAccountNumber = []byte(accountNumber)
+  }
 }
 
